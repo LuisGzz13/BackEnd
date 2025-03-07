@@ -1,4 +1,6 @@
 import sql from 'mssql';  // Use `import` instead of `require`
+import dotenv from "dotenv"
+dotenv.config();
 
 const sqlConfig = {
     user: process.env.DB_USER,
@@ -11,7 +13,7 @@ const sqlConfig = {
     }
 };  
 
-export const sqlConnect = async () => {
+ const sqlConnect = async () => {
     return await sql.connect(sqlConfig);
 };
 
