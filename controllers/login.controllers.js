@@ -1,60 +1,90 @@
 import sqlUtils from "../utils/sql.js"; // Importar como exportación por defecto
 import { verifyPassword } from "../utils/password.js";
+import { generateToken } from "../utils/jwt.js";
+import jwt from "jsonwebtoken";
 
 const { sqlConnect, sql } = sqlUtils; // Desestructurar
 
+// Simple session storage (in production, use a proper session store)
+const sessions = new Map();
+
 export const login = async (req, res) => {
     try {
+        const { username, password } = req.body;
+        
+        if (!username || !password) {
+            return res.status(400).json({ 
+                isLogin: false, 
+                message: "Username and password are required" 
+            });
+        }
+
         const pool = await sqlConnect();
         const data = await pool
             .request()
-            .input("username", sql.VarChar, req.body.username)
+            .input("username", sql.VarChar, username)
             .query("SELECT * FROM users WHERE username = @username");
 
         if (data.recordset.length === 0) {
-            return res.status(401).json({ isLogin: false, message: "Usuario no encontrado" });
+            return res.status(401).json({ 
+                isLogin: false, 
+                message: "User not found" 
+            });
         }
 
         const user = data.recordset[0];
-        const isValidPassword = verifyPassword(req.body.password, user.password, user.salt);
+        const isValidPassword = verifyPassword(password, user.password, user.salt);
         
-        res.status(200).json({ isLogin: isValidPassword });
+        if (!isValidPassword) {
+            return res.status(401).json({ 
+                isLogin: false, 
+                message: "Incorrect password" 
+            });
+        }
+
+        // Generate JWT token
+        const token = generateToken(user);
+
+        res.status(200).json({ 
+            isLogin: true, 
+            message: "Login successful",
+            token
+        });
     } catch (error) {
-        console.error("Error en login:", error);
-        res.status(500).json({ isLogin: false, message: "Error del servidor" });
+        console.error("Login error:", error);
+        res.status(500).json({ 
+            isLogin: false, 
+            message: "Server error" 
+        });
     }
 };
 
-export const register = async (req, res) => {
+export const checkAuth = async (req, res) => {
     try {
-        const pool = await sqlConnect();
-        const { username, password } = req.body;
-        
-        // Check if user already exists
-        const existingUser = await pool
-            .request()
-            .input("username", sql.VarChar, username)
-            .query("SELECT * FROM users WHERE username = @username");
-
-        if (existingUser.recordset.length > 0) {
-            return res.status(400).json({ success: false, message: "El usuario ya existe" });
+        const token = req.headers.authorization?.split(' ')[1];
+        if (!token) {
+            return res.status(401).json({ isAuthenticated: false });
         }
 
-        // Generate salt and hash password
-        const salt = generateSalt();
-        const hashedPassword = hashPassword(password, salt);
-
-        // Insert new user
-        await pool
-            .request()
-            .input("username", sql.VarChar, username)
-            .input("password", sql.VarChar, hashedPassword)
-            .input("salt", sql.VarChar, salt)
-            .query("INSERT INTO users (username, password, salt) VALUES (@username, @password, @salt)");
-
-        res.status(201).json({ success: true, message: "Usuario registrado exitosamente" });
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+        res.json({ 
+            isAuthenticated: true,
+            username: decoded.username
+        });
     } catch (error) {
-        console.error("Error en registro:", error);
-        res.status(500).json({ success: false, message: "Error del servidor" });
+        res.status(401).json({ isAuthenticated: false });
+    }
+};
+
+export const logout = async (req, res) => {
+    try {
+        const sessionId = req.cookies.sessionId;
+        if (sessionId) {
+            sessions.delete(sessionId);
+            res.clearCookie('sessionId');
+        }
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ success: false });
     }
 };
