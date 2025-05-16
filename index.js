@@ -16,17 +16,17 @@ const app = express();
 
 // connectDB();
 
-// Serve static files from the public directory
-app.use(express.static(path.join(__dirname, 'public')));
+// Serve static files from the frontend directory
+app.use(express.static(path.join(__dirname, 'frontend')));
 
 // Add a route to serve the login page
 app.get('/login', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'login.html'));
+    res.sendFile(path.join(__dirname, 'frontend', 'login.html'));
 });
 
 // Add a route to serve the success page
 app.get('/success', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'success.html'));
+    res.sendFile(path.join(__dirname, 'frontend', 'success.html'));
 });
 
 app.use(express.json());
