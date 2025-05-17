@@ -9,8 +9,22 @@ import {
   Grid,
   Card,
   CardContent,
-  CircularProgress
+  CircularProgress,
+  TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow
 } from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -19,6 +33,13 @@ function Dashboard() {
     activeUsers: 0
   });
   const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState([]);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    price: ''
+  });
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -47,9 +68,72 @@ function Dashboard() {
     fetchStats();
   }, []);
 
+  // Load items from localStorage on component mount
+  useEffect(() => {
+    const savedItems = localStorage.getItem('items');
+    if (savedItems) {
+      setItems(JSON.parse(savedItems));
+    }
+  }, []);
+
+  // Save items to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('items', JSON.stringify(items));
+  }, [items]);
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     navigate('/login');
+  };
+
+  const handleOpenDialog = (item = null) => {
+    if (item) {
+      setEditingItem(item);
+      setFormData({ name: item.name, price: item.price });
+    } else {
+      setEditingItem(null);
+      setFormData({ name: '', price: '' });
+    }
+    setOpenDialog(true);
+  };
+
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+    setEditingItem(null);
+    setFormData({ name: '', price: '' });
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (editingItem) {
+      // Update existing item
+      setItems(prev => prev.map(item => 
+        item.id === editingItem.id 
+          ? { ...item, name: formData.name, price: formData.price }
+          : item
+      ));
+    } else {
+      // Add new item
+      const newItem = {
+        id: Date.now(),
+        name: formData.name,
+        price: formData.price
+      };
+      setItems(prev => [...prev, newItem]);
+    }
+    handleCloseDialog();
+  };
+
+  const handleDelete = (id) => {
+    setItems(prev => prev.filter(item => item.id !== id));
   };
 
   if (loading) {
@@ -67,9 +151,6 @@ function Dashboard() {
           <Typography variant="h4" component="h1">
             Dashboard
           </Typography>
-          <Button variant="contained" color="secondary" onClick={handleLogout}>
-            Logout
-          </Button>
         </Box>
 
         <Grid container spacing={3}>
@@ -97,7 +178,95 @@ function Dashboard() {
               </CardContent>
             </Card>
           </Grid>
+          <Grid item xs={12}>
+            <Card>
+              <CardContent>
+                <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                  <Typography variant="h6">Items Management</Typography>
+                  <Button 
+                    variant="contained" 
+                    color="primary" 
+                    onClick={() => handleOpenDialog()}
+                  >
+                    Add New Item
+                  </Button>
+                </Box>
+                <TableContainer component={Paper}>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Name</TableCell>
+                        <TableCell>Price</TableCell>
+                        <TableCell align="right">Actions</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {items.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell>{item.name}</TableCell>
+                          <TableCell>${item.price}</TableCell>
+                          <TableCell align="right">
+                            <IconButton 
+                              color="primary" 
+                              onClick={() => handleOpenDialog(item)}
+                            >
+                              <EditIcon />
+                            </IconButton>
+                            <IconButton 
+                              color="error" 
+                              onClick={() => handleDelete(item.id)}
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </CardContent>
+            </Card>
+          </Grid>
         </Grid>
+
+        {/* Add/Edit Item Dialog */}
+        <Dialog open={openDialog} onClose={handleCloseDialog}>
+          <DialogTitle>
+            {editingItem ? 'Edit Item' : 'Add New Item'}
+          </DialogTitle>
+          <form onSubmit={handleSubmit}>
+            <DialogContent>
+              <TextField
+                autoFocus
+                margin="dense"
+                name="name"
+                label="Item Name"
+                type="text"
+                fullWidth
+                value={formData.name}
+                onChange={handleInputChange}
+                required
+              />
+              <TextField
+                margin="dense"
+                name="price"
+                label="Price"
+                type="number"
+                fullWidth
+                value={formData.price}
+                onChange={handleInputChange}
+                required
+                inputProps={{ step: "0.01" }}
+              />
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handleCloseDialog}>Cancel</Button>
+              <Button type="submit" variant="contained" color="primary">
+                {editingItem ? 'Update' : 'Add'}
+              </Button>
+            </DialogActions>
+          </form>
+        </Dialog>
       </Box>
     </Container>
   );
