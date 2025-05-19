@@ -16,12 +16,14 @@ function Login() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  const API_URL = process.env.REACT_APP_API_URL;
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
     try {
-      const response = await fetch('http://localhost:3011/login', {
+      const response = await fetch(API_URL + '/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
