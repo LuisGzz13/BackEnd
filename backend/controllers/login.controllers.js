@@ -1,5 +1,5 @@
 import User from "../utils/user.model.js";
-import { verifyPassword } from "../utils/password.js";
+import { verifyPassword, generateSalt, hashPassword } from "../utils/password.js";
 import { generateToken } from "../utils/jwt.js";
 import jwt from "jsonwebtoken";
 
@@ -55,5 +55,25 @@ export const logout = async (req, res) => {
         res.json({ success: true });
     } catch (error) {
         res.status(500).json({ success: false });
+    }
+};
+
+export const register = async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        if (!username || !password) {
+            return res.status(400).json({ success: false, message: "Username and password are required" });
+        }
+        let user = await User.findOne({ username });
+        if (user) {
+            return res.status(409).json({ success: false, message: "User already exists" });
+        }
+        const salt = generateSalt();
+        const hashedPassword = hashPassword(password, salt);
+        user = new User({ username, password: hashedPassword, salt });
+        await user.save();
+        res.status(201).json({ success: true, message: "User created successfully" });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Server error" });
     }
 };
