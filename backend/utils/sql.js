@@ -1,7 +1,7 @@
-import sql from 'mssql';  // Use `import` instead of `require`
-import dotenv from "dotenv"
-dotenv.config();
-
+//import sql from 'mssql';  // Use `import` instead of `require`
+//import dotenv from "dotenv"
+//dotenv.config();
+/*
 const sqlConfig = {
     user: process.env.DB_USER,
     password: process.env.DB_PWD,
@@ -46,3 +46,4 @@ const sqlConfig = {
 };
 
 export default { sqlConnect, sql }; // Export `sql` as a named export
+*/
