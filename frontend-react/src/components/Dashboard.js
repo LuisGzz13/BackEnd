@@ -40,6 +40,9 @@ function Dashboard() {
     name: '',
     price: ''
   });
+  const [newUser, setNewUser] = useState({ username: '', password: '' });
+  const [userMessage, setUserMessage] = useState('');
+  const API_URL = process.env.REACT_APP_API_URL;
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -226,6 +229,46 @@ function Dashboard() {
                 </TableContainer>
               </CardContent>
             </Card>
+          </Grid>
+          <Grid item xs={12}>
+            <Box display="flex" flexDirection="column" alignItems="flex-start" mb={4}>
+              <Typography variant="h6">Create User (Simple)</Typography>
+              <Box component="form" onSubmit={async (e) => {
+                e.preventDefault();
+                setUserMessage('');
+                try {
+                  const res = await fetch(API_URL + '/login/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newUser),
+                  });
+                  const data = await res.json();
+                  if (data.success) {
+                    setUserMessage('User created!');
+                  } else {
+                    setUserMessage(data.message || 'Error');
+                  }
+                } catch (err) {
+                  setUserMessage('Server error');
+                }
+              }} sx={{ mb: 2 }}>
+                <TextField
+                  label="Username"
+                  value={newUser.username}
+                  onChange={e => setNewUser({ ...newUser, username: e.target.value })}
+                  sx={{ mr: 2 }}
+                />
+                <TextField
+                  label="Password"
+                  type="password"
+                  value={newUser.password}
+                  onChange={e => setNewUser({ ...newUser, password: e.target.value })}
+                  sx={{ mr: 2 }}
+                />
+                <Button type="submit" variant="contained">Create</Button>
+              </Box>
+              {userMessage && <Typography color="error">{userMessage}</Typography>}
+            </Box>
           </Grid>
         </Grid>
 
