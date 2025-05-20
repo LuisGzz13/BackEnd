@@ -5,7 +5,7 @@ import loginRoutes from './routes/login.routes.js';
 // import items2Routes from './routes/items2.routes.js';
 import cors from 'cors';
 import morgan from 'morgan';
-// import { connectDB } from "./utils/mongodb.js";
+import { connectDB } from "./utils/mongodb.js";
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
@@ -18,7 +18,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3011;
 
-// connectDB();
+connectDB();
 
 // Serve static files from the frontend directory
 app.use(express.static(path.join(__dirname, '../frontend')));

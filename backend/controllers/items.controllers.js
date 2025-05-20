@@ -1,69 +1,27 @@
-import sqlUtils from "../utils/sql.js";  // Import the default object
+import Item from "../utils/item.model.js";
 
-const { sqlConnect, sql } = sqlUtils;  // Destructure sqlConnect and sql
-
-export const getItems = async () => {
-  const pool = await sqlConnect();
-  const data = await pool.request().query("SELECT * FROM Alumnos");
-  console.log(data);
+export const getItems = async (req, res) => {
+    const items = await Item.find();
+    res.json(items);
 };
 
 export const getItem = async (req, res) => {
-  const pool = await sqlConnect();
-  const data = await pool
-      .request()
-      .input("myId", sql.Int, req.params.id)
-      .query("select * from items where AlumnoID=@myId");
-  res.json(data.recordset);
-};
-
-export const postItems = async (req, res) => {
-  const pool = await sqlConnect();
-  const { nombre, apellido } = req.body;
-  const data = await pool
-    .request()
-    .input("nombre", sql.VarChar, nombre)
-    .input("apellido", sql.VarChar, apellido)
-    .query("INSERT INTO Alumnos (nombre, apellido) VALUES (@nombre, @apellido)");
-  res.json(data);
-}
-
-export const putItem = async (req, res) => {
-    const pool = await sqlConnect();
-    const data = await pool
-        .request()
-        .input("id", sql.Int, req.params.id)
-        .input("name", sql.VarChar, req.body.name)
-        .input("price", sql.Float, req.body.price)
-        .query("update items set name=@name, price=@price where id=@id");
-
-    res.status(200).json({ operation: true });
+    const item = await Item.findById(req.params.id);
+    res.json(item);
 };
 
 export const postItem = async (req, res) => {
-  const pool = await sqlConnect();
-  await pool
-      .request()
-      .input("name", sql.VarChar, req.body.name)
-      .input("price", sql.Float, req.body.price)
-      .query("insert into items (name, price) values (@name, @price)");
-
-  const data = await pool
-      .request()
-      .input("name", sql.VarChar, req.body.name)
-      .query("select * from items where name = @name");
-
-  console.log(data.recordset);
-  res.status(200).json({ operation: true, item:data.recordset[0]});
+    const item = new Item(req.body);
+    await item.save();
+    res.json(item);
 };
 
+export const putItem = async (req, res) => {
+    const item = await Item.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json(item);
+};
 
 export const deleteItem = async (req, res) => {
-    const pool = await sqlConnect();
-    const data = await pool
-        .request()
-        .input("id", sql.Int, req.params.id)
-        .query("delete from items where id=@id");
-    
-    res.status(200).json({ operation: true });
+    await Item.findByIdAndDelete(req.params.id);
+    res.status(200).json({ msg: "Item deleted!" });
 };

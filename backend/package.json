@@ -16,7 +16,7 @@
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
-    "mssql": "^9.3.2"
+    "mongoose": "^8.15.0"
   },
   "devDependencies": {
     "nodemon": "^2.0.22"

@@ -1,41 +1,27 @@
 import { generateSalt, hashPassword } from './utils/password.js';
-import sqlUtils from './utils/sql.js';
-
-const { sqlConnect, sql } = sqlUtils;
-
+import User from './utils/user.model.js';
+import { connectDB } from './utils/mongodb.js';
+import dotenv from 'dotenv';
+dotenv.config();
+console.log("Loaded MONGO_URI:", process.env.MONGO_URI);
 async function createUser(username, password) {
     try {
+        await connectDB();
         // Generate salt and hash password
         const salt = generateSalt();
         const hashedPassword = hashPassword(password, salt);
 
-        // Connect to database
-        const pool = await sqlConnect();
-
         // Check if user already exists
-        const checkUser = await pool
-            .request()
-            .input('username', sql.VarChar, username)
-            .query('SELECT * FROM users WHERE username = @username');
-
-        if (checkUser.recordset.length > 0) {
+        let user = await User.findOne({ username });
+        if (user) {
             console.log('User already exists. Updating password...');
-            // Update existing user's password
-            await pool
-                .request()
-                .input('username', sql.VarChar, username)
-                .input('password', sql.VarChar, hashedPassword)
-                .input('salt', sql.VarChar, salt)
-                .query('UPDATE users SET password = @password, salt = @salt WHERE username = @username');
+            user.password = hashedPassword;
+            user.salt = salt;
+            await user.save();
         } else {
             console.log('Creating new user...');
-            // Create new user
-            await pool
-                .request()
-                .input('username', sql.VarChar, username)
-                .input('password', sql.VarChar, hashedPassword)
-                .input('salt', sql.VarChar, salt)
-                .query('INSERT INTO users (username, password, salt) VALUES (@username, @password, @salt)');
+            user = new User({ username, password: hashedPassword, salt });
+            await user.save();
         }
 
         console.log('User created/updated successfully!');
@@ -44,8 +30,10 @@ async function createUser(username, password) {
         console.log('Salt:', salt);
         console.log('Hashed Password:', hashedPassword);
 
+        process.exit(0);
     } catch (error) {
         console.error('Error creating user:', error);
+        process.exit(1);
     }
 }
 
