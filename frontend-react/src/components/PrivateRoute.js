@@ -5,6 +5,7 @@ import { CircularProgress, Box } from '@mui/material';
 function PrivateRoute({ children }) {
   const [isLoading, setIsLoading] = React.useState(true);
   const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+  const API_URL = process.env.REACT_APP_API_URL;
 
   React.useEffect(() => {
     const checkAuth = async () => {
@@ -16,7 +17,7 @@ function PrivateRoute({ children }) {
       }
 
       try {
-        const response = await fetch('http://localhost:3011/login/check', {
+        const response = await fetch(API_URL + '/login/check', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -36,7 +37,7 @@ function PrivateRoute({ children }) {
     };
 
     checkAuth();
-  }, []);
+  }, [API_URL]);
 
   if (isLoading) {
     return (
