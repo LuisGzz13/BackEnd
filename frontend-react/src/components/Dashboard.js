@@ -224,12 +224,6 @@ function Dashboard() {
                           <TableCell>${item.price}</TableCell>
                           <TableCell align="right">
                             <IconButton 
-                              color="primary" 
-                              onClick={() => handleOpenDialog(item)}
-                            >
-                              <EditIcon />
-                            </IconButton>
-                            <IconButton 
                               color="error" 
                               onClick={() => handleDelete(item._id)}
                             >
