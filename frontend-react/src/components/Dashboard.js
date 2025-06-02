@@ -25,75 +25,33 @@ import {
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import { useItems } from '../hooksPersonalizados/useItems';
+
+function LifecycleDemo() {
+  useEffect(() => {
+    console.log('LifecycleDemo: MOUNT');
+    return () => {
+      console.log('LifecycleDemo: UNMOUNT');
+    };
+  }, []);
+  useEffect(() => {
+    console.log('LifecycleDemo: UPDATE');
+  });
+  return null;
+}
 
 function Dashboard() {
   const navigate = useNavigate();
-  const [stats, setStats] = useState({
-    totalItems: 0,
-    activeUsers: 0
-  });
-  const [loading, setLoading] = useState(true);
-  const [items, setItems] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    price: ''
-  });
+  const [formData, setFormData] = useState({ name: '', price: '' });
   const [newUser, setNewUser] = useState({ username: '', password: '' });
   const [userMessage, setUserMessage] = useState('');
-  const API_URL = process.env.REACT_APP_API_URL;
+  const [openDetailModal, setOpenDetailModal] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const { items, loading, error, fetchItems, addItem, deleteItem } = useItems();
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:3011/items', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setStats({
-            totalItems: data.length || 0,
-            activeUsers: 1 // This would come from your backend
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching stats:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStats();
-  }, []);
-
-  useEffect(() => {
-    const fetchItems = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch(API_URL + '/items/');
-        if (response.ok) {
-          const data = await response.json();
-          setItems(data);
-          setStats(prev => ({ ...prev, totalItems: data.length }));
-        }
-      } catch (error) {
-        console.error('Error fetching items:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchItems();
-  }, [API_URL]);
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/login');
-  };
+  useEffect(() => { fetchItems(); }, [fetchItems]);
 
   const handleOpenDialog = (item = null) => {
     if (item) {
@@ -114,43 +72,27 @@ function Dashboard() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      const response = await fetch(API_URL + '/items/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: formData.name, price: formData.price }),
-      });
-      if (response.ok) {
-        const newItem = await response.json();
-        setItems(prev => [...prev, newItem]);
-        setStats(prev => ({ ...prev, totalItems: prev.totalItems + 1 }));
-      }
-    } catch (error) {
-      console.error('Error adding item:', error);
-    }
+    await addItem({ name: formData.name, price: formData.price });
     handleCloseDialog();
   };
 
   const handleDelete = async (id) => {
-    try {
-      const response = await fetch(API_URL + '/items/' + id, {
-        method: 'DELETE',
-      });
-      if (response.ok) {
-        setItems(prev => prev.filter(item => item._id !== id));
-        setStats(prev => ({ ...prev, totalItems: prev.totalItems - 1 }));
-      }
-    } catch (error) {
-      console.error('Error deleting item:', error);
-    }
+    await deleteItem(id);
+  };
+
+  const handleShowDetails = (item) => {
+    setSelectedItem(item);
+    setOpenDetailModal(true);
+  };
+
+  const handleCloseDetailModal = () => {
+    setOpenDetailModal(false);
+    setSelectedItem(null);
   };
 
   if (loading) {
@@ -163,13 +105,13 @@ function Dashboard() {
 
   return (
     <Container>
+      <LifecycleDemo />
       <Box sx={{ mt: 4, mb: 4 }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
           <Typography variant="h4" component="h1">
             Dashboard
           </Typography>
         </Box>
-
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
             <Card>
@@ -178,7 +120,7 @@ function Dashboard() {
                   Total Items
                 </Typography>
                 <Typography variant="h3">
-                  {stats.totalItems}
+                  {items.length}
                 </Typography>
               </CardContent>
             </Card>
@@ -189,9 +131,7 @@ function Dashboard() {
                 <Typography color="textSecondary" gutterBottom>
                   Active Users
                 </Typography>
-                <Typography variant="h3">
-                  {stats.activeUsers}
-                </Typography>
+                <Typography variant="h3">1</Typography>
               </CardContent>
             </Card>
           </Grid>
@@ -219,8 +159,10 @@ function Dashboard() {
                     </TableHead>
                     <TableBody>
                       {items.map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell>{item.name}</TableCell>
+                        <TableRow key={item._id}>
+                          <TableCell>
+                            <Button color="primary" onClick={() => handleShowDetails(item)}>{item.name}</Button>
+                          </TableCell>
                           <TableCell>${item.price}</TableCell>
                           <TableCell align="right">
                             <IconButton 
@@ -245,7 +187,7 @@ function Dashboard() {
                 e.preventDefault();
                 setUserMessage('');
                 try {
-                  const res = await fetch(API_URL + '/login/register', {
+                  const res = await fetch(process.env.REACT_APP_API_URL + '/login/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(newUser),
@@ -279,7 +221,6 @@ function Dashboard() {
             </Box>
           </Grid>
         </Grid>
-
         {/* Add/Edit Item Dialog */}
         <Dialog open={openDialog} onClose={handleCloseDialog}>
           <DialogTitle>
@@ -317,6 +258,25 @@ function Dashboard() {
               </Button>
             </DialogActions>
           </form>
+        </Dialog>
+        {/* Item Detail Modal */}
+        <Dialog open={openDetailModal} onClose={handleCloseDetailModal}>
+          <DialogTitle>Item Details</DialogTitle>
+          <DialogContent>
+            {selectedItem && (
+              <Box>
+                <Typography><b>ID:</b> {selectedItem._id}</Typography>
+                <Typography><b>Name:</b> {selectedItem.name}</Typography>
+                <Typography><b>Price:</b> ${selectedItem.price}</Typography>
+                <Typography><b>Created At:</b> {selectedItem.createdAt}</Typography>
+                <Typography><b>Updated At:</b> {selectedItem.updatedAt}</Typography>
+                <Typography><b>__v:</b> {selectedItem.__v}</Typography>
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseDetailModal}>Close</Button>
+          </DialogActions>
         </Dialog>
       </Box>
     </Container>
