@@ -139,6 +139,20 @@ function Dashboard() {
     handleCloseDialog();
   };
 
+  const handleDelete = async (id) => {
+    try {
+      const response = await fetch(API_URL + '/items/' + id, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        setItems(prev => prev.filter(item => item._id !== id));
+        setStats(prev => ({ ...prev, totalItems: prev.totalItems - 1 }));
+      }
+    } catch (error) {
+      console.error('Error deleting item:', error);
+    }
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
@@ -217,7 +231,7 @@ function Dashboard() {
                             </IconButton>
                             <IconButton 
                               color="error" 
-                              // onClick={() => handleDelete(item.id)}
+                              onClick={() => handleDelete(item._id)}
                             >
                               <DeleteIcon />
                             </IconButton>
