@@ -71,18 +71,24 @@ function Dashboard() {
     fetchStats();
   }, []);
 
-  // Load items from localStorage on component mount
   useEffect(() => {
-    const savedItems = localStorage.getItem('items');
-    if (savedItems) {
-      setItems(JSON.parse(savedItems));
-    }
-  }, []);
-
-  // Save items to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('items', JSON.stringify(items));
-  }, [items]);
+    const fetchItems = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(API_URL + '/items/');
+        if (response.ok) {
+          const data = await response.json();
+          setItems(data);
+          setStats(prev => ({ ...prev, totalItems: data.length }));
+        }
+      } catch (error) {
+        console.error('Error fetching items:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchItems();
+  }, [API_URL]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -114,29 +120,23 @@ function Dashboard() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (editingItem) {
-      // Update existing item
-      setItems(prev => prev.map(item => 
-        item.id === editingItem.id 
-          ? { ...item, name: formData.name, price: formData.price }
-          : item
-      ));
-    } else {
-      // Add new item
-      const newItem = {
-        id: Date.now(),
-        name: formData.name,
-        price: formData.price
-      };
-      setItems(prev => [...prev, newItem]);
+    try {
+      const response = await fetch(API_URL + '/items/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: formData.name, price: formData.price }),
+      });
+      if (response.ok) {
+        const newItem = await response.json();
+        setItems(prev => [...prev, newItem]);
+        setStats(prev => ({ ...prev, totalItems: prev.totalItems + 1 }));
+      }
+    } catch (error) {
+      console.error('Error adding item:', error);
     }
     handleCloseDialog();
-  };
-
-  const handleDelete = (id) => {
-    setItems(prev => prev.filter(item => item.id !== id));
   };
 
   if (loading) {
