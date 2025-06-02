@@ -217,7 +217,7 @@ function Dashboard() {
                             </IconButton>
                             <IconButton 
                               color="error" 
-                              onClick={() => handleDelete(item.id)}
+                              // onClick={() => handleDelete(item.id)}
                             >
                               <DeleteIcon />
                             </IconButton>
